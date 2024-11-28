@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Scanner</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        #canvas {
+            display: none;
+        }
+        #video {
+            width: 100%;
+            max-width: 500px;
+            border: 2px solid #000;
+        }
+    </style>
+</head>
+<body>
+    <h1>Scan QR Code</h1>
+    <video id="video" autoplay></video>
+    <canvas id="canvas"></canvas>
+    <p id="result"></p>
+
+    <script>
+        // Get video and canvas elements
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const resultDisplay = document.getElementById("result");
+
+        // Start the video stream
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then((stream) => {
+                video.srcObject = stream;
+                video.setAttribute("playsinline", true); // Required for iOS
+                video.play();
+                requestAnimationFrame(scanQRCode);
+            })
+            .catch((error) => {
+                console.error("Error accessing camera: ", error);
+                alert("Could not access the camera. Please allow camera access.");
+            });
+
+        // Function to scan QR code
+        function scanQRCode() {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const qrCode = jsQR(imageData.data, canvas.width, canvas.height);
+
+                if (qrCode) {
+                    resultDisplay.textContent = `QR Code content: ${qrCode.data}`;
+                    // Optionally, redirect to the scanned URL if it contains a valid link
+                    if (qrCode.data.startsWith("https://")) {
+                        window.location.href = qrCode.data;
+                    }
+                } else {
+                    resultDisplay.textContent = "Scanning for QR code...";
+                }
+            }
+            requestAnimationFrame(scanQRCode);
+        }
+    </script>
+</body>
+</html>
